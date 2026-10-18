@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TwinSync — Birthday Edition</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top left, rgba(255,255,255,.25), transparent 30%),
+        linear-gradient(135deg, #7c3aed, #ec4899);
+      color: #1f2937;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .app {
+      width: min(100%, 680px);
+    }
+
+    .card {
+      background: rgba(255,255,255,.96);
+      border-radius: 28px;
+      padding: 32px 24px;
+      box-shadow: 0 25px 60px rgba(0,0,0,.18);
+      animation: fadeIn .45s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    h1 {
+      font-size: clamp(2rem, 8vw, 3.5rem);
+      line-height: .95;
+      margin-bottom: 16px;
+    }
+
+    h2 {
+      margin-bottom: 12px;
+      font-size: 1.65rem;
+    }
+
+    p {
+      line-height: 1.65;
+      color: #4b5563;
+    }
+
+    .emoji {
+      font-size: 3rem;
+      margin-bottom: 15px;
+    }
+
+    .sub {
+      margin-bottom: 24px;
+    }
+
+    button {
+      border: 0;
+      cursor: pointer;
+      font: inherit;
+    }
+
+    .primary {
+      width: 100%;
+      padding: 16px 20px;
+      border-radius: 16px;
+      background: #111827;
+      color: white;
+      font-weight: 700;
+      margin-top: 20px;
+      transition: .2s ease;
+    }
+
+    .primary:hover {
+      transform: translateY(-2px);
+    }
+
+    .options {
+      display: grid;
+      gap: 12px;
+      margin-top: 22px;
+    }
+
+    .option {
+      padding: 16px;
+      border-radius: 16px;
+      background: #f3f4f6;
+      border: 2px solid transparent;
+      text-align: left;
+      font-weight: 600;
+      transition: .2s ease;
+    }
+
+    .option:hover {
+      background: #ede9fe;
+      border-color: #8b5cf6;
+    }
+
+    .progress {
+      height: 8px;
+      background: #e5e7eb;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 28px;
+    }
+
+    .bar {
+      height: 100%;
+      background: linear-gradient(90deg, #7c3aed, #ec4899);
+      transition: width .3s ease;
+    }
+
+    .label {
+      display: inline-block;
+      padding: 7px 12px;
+      border-radius: 999px;
+      background: #ede9fe;
+      color: #6d28d9;
+      font-size: .8rem;
+      font-weight: 800;
+      margin-bottom: 14px;
+    }
+
+    .score {
+      font-size: 4.5rem;
+      font-weight: 900;
+      margin: 20px 0 10px;
+      background: linear-gradient(90deg, #7c3aed, #ec4899);
+      -webkit-background-clip: text;
+      color: transparent;
+    }
+
+    .result-box {
+      margin-top: 24px;
+      background: #f9fafb;
+      border-radius: 20px;
+      padding: 20px;
+    }
+
+    .blessing {
+      margin-top: 28px;
+      padding: 22px;
+      border-radius: 20px;
+      background: #faf5ff;
+    }
+
+    .verse {
+      margin-top: 14px;
+      font-style: italic;
+      color: #6b21a8;
+    }
+
+    .tiny {
+      margin-top: 24px;
+      font-size: .8rem;
+      color: #9ca3af;
+      text-align: center;
+    }
+
+    canvas {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 20;
+    }
+  </style>
+</head>
+
+<body>
+
+<canvas id="confetti"></canvas>
+
+<div class="app">
+  <div class="card" id="screen"></div>
+</div>
+
+<script>
+const twins = ["Favour", "Precious"];
+
+const thisOrThat = [
+  ["Tea ☕", "Coffee ☕"],
+  ["Early morning 🌅", "Late night 🌙"],
+  ["Staying home 🏠", "Going out 🚶🏽‍♀️"],
+  ["Text 💬", "Voice note 🎙️"],
+  ["Sweet 🍫", "Spicy 🌶️"],
+  ["Planned 📋", "Spontaneous 😂"],
+  ["Quiet day 🌿", "Adventure 🚗"],
+  ["Movies 🎬", "Music 🎶"]
+];
+
+const likelyQuestions = [
+  "Who is more likely to laugh during a serious moment? 😂",
+  "Who is more likely to forget where she kept her phone? 📱",
+  "Who takes longer to get ready? 👗",
+  "Who is more likely to start singing randomly? 🎶",
+  "Who is more likely to suggest food first? 🍛",
+  "Who would survive longest without social media? 😅",
+  "Who is more likely to make friends quickly? 🤝",
+  "Who is more likely to say 'I'm coming' while still getting ready? 😂"
+];
+
+const predictions = [
+  {
+    q: "Perfect free evening?",
+    options: ["Sleep 😴", "Movie 🎬", "Prayer/Worship 🙏🏽", "Hangout 😄"]
+  },
+  {
+    q: "Unexpected ₦100k?",
+    options: ["Save it 💰", "Shop 🛍️", "Give 🎁", "Enjoy life 😂"]
+  },
+  {
+    q: "Ideal birthday mood?",
+    options: ["Quiet & reflective 🌿", "Family time ❤️", "Friends & laughter 😂", "Adventure 🚗"]
+  },
+  {
+    q: "Best kind of gift?",
+    options: ["Money 😂", "Something useful", "An experience", "Something thoughtful"]
+  }
+];
+
+let phase = "welcome";
+let twinIndex = 0;
+let questionIndex = 0;
+
+let twinAnswers = [[], []];
+let likelyAnswers = [];
+let predictionAnswers = [[], []];
+
+const screen = document.getElementById("screen");
+
+function renderWelcome() {
+  screen.innerHTML = `
+    <div class="emoji">🎉👯‍♀️🎂</div>
+    <span class="label">Birthday Edition</span>
+
+    <h1>TwinSync</h1>
+
+    <p class="sub">
+      Happy Birthday <strong>Favour & Precious!</strong> 🥳
+      <br><br>
+      Same birthday. Same roots.
+      But how much twin energy are we actually dealing with? 😂
+    </p>
+
+    <button class="primary" onclick="startThisOrThat()">
+      Start TwinSync →
+    </button>
+
+    <div class="tiny">Made specially for the birthday girls ✨</div>
+  `;
+}
+
+function startThisOrThat() {
+  phase = "this";
+  twinIndex = 0;
+  questionIndex = 0;
+  renderThisQuestion();
+}
+
+function renderThisQuestion() {
+  const total = thisOrThat.length * 2;
+  const current = twinIndex * thisOrThat.length + questionIndex;
+  const progress = (current / total) * 100;
+
+  const q = thisOrThat[questionIndex];
+
+  screen.innerHTML = `
+    <div class="progress">
+      <div class="bar" style="width:${progress}%"></div>
+    </div>
+
+    <span class="label">${twins[twinIndex]}'s turn</span>
+
+    <h2>This or That?</h2>
+
+    <p>Choose honestly o 😂</p>
+
+    <div class="options">
+      <button class="option" onclick="answerThis(0)">
+        ${q[0]}
+      </button>
+
+      <button class="option" onclick="answerThis(1)">
+        ${q[1]}
+      </button>
+    </div>
+  `;
+}
+
+function answerThis(answer) {
+  twinAnswers[twinIndex].push(answer);
+
+  questionIndex++;
+
+  if (questionIndex >= thisOrThat.length) {
+    if (twinIndex === 0) {
+      twinIndex = 1;
+      questionIndex = 0;
+
+      screen.innerHTML = `
+        <div class="emoji">🙈</div>
+        <h2>No peeking!</h2>
+
+        <p>
+          Favour's answers are locked in 🔒
+          <br><br>
+          Pass the phone to Precious.
+        </p>
+
+        <button class="primary" onclick="renderThisQuestion()">
+          Precious is ready →
+        </button>
+      `;
+    } else {
+      startLikely();
+    }
+  } else {
+    renderThisQuestion();
+  }
+}
+
+function startLikely() {
+  phase = "likely";
+  questionIndex = 0;
+  renderLikely();
+}
+
+function renderLikely() {
+  const progress = (questionIndex / likelyQuestions.length) * 100;
+
+  screen.innerHTML = `
+    <div class="progress">
+      <div class="bar" style="width:${progress}%"></div>
+    </div>
+
+    <span class="label">Round Two</span>
+
+    <h2>Who Is Most Likely To…?</h2>
+
+    <p>${likelyQuestions[questionIndex]}</p>
+
+    <div class="options">
+      <button class="option" onclick="answerLikely('Favour')">
+        Favour 😄
+      </button>
+
+      <button class="option" onclick="answerLikely('Precious')">
+        Precious 😄
+      </button>
+
+      <button class="option" onclick="answerLikely('Both')">
+        Both 😂
+      </button>
+    </div>
+  `;
+}
+
+function answerLikely(answer) {
+  likelyAnswers.push(answer);
+  questionIndex++;
+
+  if (questionIndex >= likelyQuestions.length) {
+    startPredictions();
+  } else {
+    renderLikely();
+  }
+}
+
+function startPredictions() {
+  phase = "predict";
+  twinIndex = 0;
+  questionIndex = 0;
+  renderPrediction();
+}
+
+function renderPrediction() {
+  const item = predictions[questionIndex];
+
+  screen.innerHTML = `
+    <span class="label">Twin Prediction</span>
+
+    <h2>${twins[twinIndex]}'s answer</h2>
+
+    <p>${item.q}</p>
+
+    <div class="options">
+      ${item.options.map((o,i) => `
+        <button class="option" onclick="answerPrediction(${i})">
+          ${o}
+        </button>
+      `).join("")}
+    </div>
+  `;
+}
+
+function answerPrediction(answer) {
+  predictionAnswers[twinIndex].push(answer);
+
+  questionIndex++;
+
+  if (questionIndex >= predictions.length) {
+    if (twinIndex === 0) {
+      twinIndex = 1;
+      questionIndex = 0;
+
+      screen.innerHTML = `
+        <div class="emoji">🔐</div>
+
+        <h2>Answers saved!</h2>
+
+        <p>
+          Pass the phone to Precious.
+          Let's see if the twin connection is real 😂
+        </p>
+
+        <button class="primary" onclick="renderPrediction()">
+          Continue →
+        </button>
+      `;
+    } else {
+      showChallenge();
+    }
+  } else {
+    renderPrediction();
+  }
+}
+
+function showChallenge() {
+  const challenges = [
+    "Without discussing it, both point at who is more stubborn 😂",
+    "Say one thing you genuinely appreciate about each other ❤️",
+    "Take the most unserious twin selfie possible 😂📸",
+    "Both say what you think the other's favourite phrase is 😭"
+  ];
+
+  const random = challenges[Math.floor(Math.random() * challenges.length)];
+
+  screen.innerHTML = `
+    <span class="label">Bonus Challenge</span>
+
+    <div class="emoji">😂</div>
+
+    <h2>Twin Challenge</h2>
+
+    <p>${random}</p>
+
+    <button class="primary" onclick="showResults()">
+      We've done it 😂 →
+    </button>
+  `;
+}
+
+function showResults() {
+  let matches = 0;
+
+  twinAnswers[0].forEach((answer, i) => {
+    if (answer === twinAnswers[1][i]) matches++;
+  });
+
+  predictionAnswers[0].forEach((answer, i) => {
+    if (answer === predictionAnswers[1][i]) matches++;
+  });
+
+  const total = thisOrThat.length + predictions.length;
+
+  const score = Math.round((matches / total) * 100);
+
+  let verdict = "";
+
+  if (score >= 85) {
+    verdict = "At this point, are you sure you're two different people? 😂";
+  } else if (score >= 65) {
+    verdict = "Strong twin connection, but individual personalities still dey 😂";
+  } else if (score >= 40) {
+    verdict = "Same birthday. Different operating systems 😂";
+  } else {
+    verdict = "DNA needs to explain itself 😭😂";
+  }
+
+  startConfetti();
+
+  screen.innerHTML = `
+    <span class="label">Official Twin Report</span>
+
+    <h2>Favour & Precious</h2>
+
+    <div class="score">${score}%</div>
+
+    <p><strong>TwinSync Score</strong></p>
+
+    <div class="result-box">
+      <p>${verdict}</p>
+    </div>
+
+    <div class="blessing">
+      <h2>Happy Birthday 🎉</h2>
+
+      <p>
+        May this new year bring both of you greater grace, wisdom,
+        joy and strength.
+        <br><br>
+        May your walk with Christ grow deeper, may the Lord establish
+        the work of your hands, and may each of you fulfil His purpose
+        for your lives.
+      </p>
+
+      <p class="verse">
+        “The LORD bless thee, and keep thee:
+        The LORD make his face shine upon thee,
+        and be gracious unto thee.”
+        <br>
+        — Numbers 6:24–25
+      </p>
+    </div>
+
+    <button class="primary" onclick="location.reload()">
+      Play Again 😂
+    </button>
+
+    <div class="tiny">
+      Happy Birthday Favour & Precious 🎂✨
+    </div>
+  `;
+}
+
+function startConfetti() {
+  const canvas = document.getElementById("confetti");
+  const ctx = canvas.getContext("2d");
+
+  canvas.width = innerWidth;
+  canvas.height = innerHeight;
+
+  const pieces = [];
+
+  for (let i = 0; i < 120; i++) {
+    pieces.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * -canvas.height,
+      size: Math.random() * 7 + 3,
+      speed: Math.random() * 3 + 2,
+      rotation: Math.random() * Math.PI
+    });
+  }
+
+  let frames = 0;
+
+  function animate() {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    pieces.forEach(p => {
+      p.y += p.speed;
+      p.rotation += .05;
+
+      ctx.save();
+      ctx.translate(p.x,p.y);
+      ctx.rotate(p.rotation);
+
+      ctx.fillStyle = `hsl(${Math.random()*360},80%,60%)`;
+      ctx.fillRect(-p.size/2,-p.size/2,p.size,p.size);
+
+      ctx.restore();
+    });
+
+    frames++;
+
+    if (frames < 240) {
+      requestAnimationFrame(animate);
+    } else {
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+    }
+  }
+
+  animate();
+}
+
+renderWelcome();
+</script>
+
+</body>
+</html>
